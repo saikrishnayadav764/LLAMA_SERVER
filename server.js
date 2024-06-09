@@ -6,7 +6,12 @@ const AWS = require("aws-sdk");
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
-const client = new S3Client({});
+const client = new S3Client({
+  credentials:{
+    accessKeyId: process.env.ACCESS_KEY,
+    secretAccessKey: process.env.SECRET_KEY
+  }
+});
 
 const app = express();
 require("dotenv").config();
