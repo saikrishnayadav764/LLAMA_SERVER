@@ -7,6 +7,12 @@ const AWS = require("aws-sdk");
 const axios = require("axios");
 const { v4: uuidv4 } = require("uuid");
 const { S3Client, GetObjectCommand, ListObjectsV2Command } = require("@aws-sdk/client-s3");
+
+const app = express();
+const cors = require("cors");
+app.use(cors());
+app.use(express.json());
+
 const client = new S3Client({
   credentials: {
     accessKeyId: process.env.ACCESS_KEY,
@@ -14,16 +20,14 @@ const client = new S3Client({
   },
 });
 
-const app = express();
-app.use(express.json());
 let objectUrl = "";
 let Key = "";
 const Bucket = process.env.BUCKET_NAME;
-const newBucket = process.env.NEW_BUCKET_NAME; 
+const newBucket = process.env.NEW_BUCKET_NAME; // Update with your new bucket name
 let pname = "";
 
-// Setting the AWS region here
-AWS.config.update({ region: process.env.AWS_REGION }); 
+// Set the AWS region here
+AWS.config.update({ region: "ap-south-1" }); // Replace 'eu-north-1' with your desired region
 
 const s3 = new AWS.S3({
   accessKeyId: process.env.ACCESS_KEY,
