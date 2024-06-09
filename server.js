@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const fs = require("fs");
 const path = require("path");
@@ -14,7 +15,6 @@ const client = new S3Client({
 });
 
 const app = express();
-require("dotenv").config();
 app.use(express.json());
 let objectUrl = "";
 let Key = "";
