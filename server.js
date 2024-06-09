@@ -28,7 +28,11 @@ const s3 = new AWS.S3({
   accessKeyId: process.env.ACCESS_KEY,
   secretAccessKey: process.env.SECRET_KEY,
 });
-const transcribe = new AWS.TranscribeService();
+const transcribe = new AWS.TranscribeService({
+  accessKeyId: process.env.ACCESS_KEY,
+  secretAccessKey: process.env.SECRET_KEY,
+  region: process.env.AWS_REGION
+});
 
 const streamToString = (stream) =>
   new Promise((resolve, reject) => {
