@@ -116,6 +116,10 @@ app.post("/transcribe", async (req, res) => {
               const transcriptionUrl = transcribeResult.TranscriptionJob.Transcript.TranscriptFileUri;
               const urlParts = transcriptionUrl.split("/");
               Key = urlParts.pop();
+
+
+
+
               s3.getObject({ Bucket, Key }, function (err, data) {
                 if (err) {
                   console.log(err, err.stack);
@@ -131,9 +135,9 @@ app.post("/transcribe", async (req, res) => {
                   });
                   const newData = {
                     name: pname,
-                    upload_date: currentDate,
+                    upload_date: new Date(),
                     transcripted: transcripted,
-                    status: "Done",
+                    status: "Done"
                   };
                   const newKey = `transcription_${uuidv4()}.json`;
                   const uploadParams = {
@@ -176,8 +180,12 @@ app.get("/transcriptions", async (req, res) => {
 
     const transcriptions = await Promise.all(
       response.Contents.map(async (item) => {
+        let docid = item.Key.split("_")[1];
+        docid = docid.split(".")[0];
         const data = await readFile(newBucket, item.Key);
-        return JSON.parse(data);
+        console.log(docid)
+        const desired = {...JSON.parse(data), docid:docid}
+        return desired;
       })
     );
 
@@ -185,6 +193,103 @@ app.get("/transcriptions", async (req, res) => {
   } catch (error) {
     console.error("Error fetching transcriptions", error);
     res.status(500).send("Error fetching transcriptions");
+  }
+});
+
+app.get("/transcriptions/:id", async (req, res) => {
+  try {
+
+    const { id } = req.params;
+    console.log(id)
+    const params = {
+      Bucket: newBucket,
+      Key: `transcription_${id}.json`,
+    };
+
+    const command = new GetObjectCommand(params);
+    const response = await client.send(command);
+    const data = await streamToString(response.Body);
+
+    res.json(JSON.parse(data));
+  } catch (error) {
+    console.error("Error fetching transcription", error);
+    res.status(500).send("Error fetching transcription");
+  }
+});
+
+app.put("/transcriptions/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, transcripted } = req.body;
+
+    const params = {
+      Bucket: newBucket,
+      Key: `transcription_${id}.json`,
+    };
+
+    const command = new GetObjectCommand(params);
+    const response = await client.send(command);
+    let data = JSON.parse(await streamToString(response.Body));
+
+    if (name) data.name = name;
+    if (transcripted) data.transcripted = transcripted;
+
+    const uploadParams = {
+      Bucket: newBucket,
+      Key: `transcription_${id}.json`,
+      Body: JSON.stringify(data),
+      ContentType: "application/json",
+    };
+
+    s3.upload(uploadParams, (err, data) => {
+      if (err) {
+        console.error("Error updating transcription", err);
+        res.status(500).send("Error updating transcription");
+      } else {
+        console.log("Transcription updated successfully");
+        res.status(200).send("Transcription updated successfully");
+      }
+    });
+  } catch (error) {
+    console.error("Error updating transcription", error);
+    res.status(500).send("Error updating transcription");
+  }
+});
+
+app.delete("/transcriptions/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const params = {
+      Bucket: newBucket,
+      Key: `transcription_${id}.json`,
+    };
+
+    const command = new GetObjectCommand(params);
+    const response = await client.send(command);
+
+    if (!response) {
+      console.error("Transcription not found");
+      res.status(404).send("Transcription not found");
+      return;
+    }
+
+    const deleteParams = {
+      Bucket: newBucket,
+      Key: `transcription_${id}.json`,
+    };
+
+    s3.deleteObject(deleteParams, (err, data) => {
+      if (err) {
+        console.error("Error deleting transcription", err);
+        res.status(500).send("Error deleting transcription");
+      } else {
+        console.log("Transcription deleted successfully");
+        res.status(200).send("Transcription deleted successfully");
+      }
+    });
+  } catch (error) {
+    console.error("Error deleting transcription", error);
+    res.status(500).send("Error deleting transcription");
   }
 });
 
